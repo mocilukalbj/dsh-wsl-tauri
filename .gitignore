@@ -1,0 +1,14 @@
+/target/
+/tools/
+*.log
+__pycache__/
+/gen/
+/webview-smoke.png
+/ui-build.json
+/ui-build.json.tmp
+/backend.json
+/build.local.cmd
+/webview-smoke.json
+.env
+.env.*
+!.env.example
