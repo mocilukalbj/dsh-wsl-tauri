@@ -1,6 +1,4 @@
 {
-  "distribution": "Ubuntu-24.04",
-  "user": "your-linux-user",
   "home": "/home/your-linux-user",
   "port": 3080
 }

@@ -2,7 +2,7 @@
 name = "dsh-wsl-tauri"
 version = "0.1.0"
 edition = "2021"
-description = "Windows Tauri shell for a DeepSeek Harness backend running in WSL"
+description = "Tauri desktop shell for the DeepSeek Harness WebUI with core-version-aware builds"
 license = "MIT"
 
 [build-dependencies]
