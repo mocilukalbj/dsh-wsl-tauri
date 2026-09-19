@@ -127,27 +127,46 @@ fn backend_url() -> Result<tauri::Url, String> {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-                .title(format!("DeepSeek Harness · UI {} / 已安装内核 {}", CORE_VERSION.trim(), CORE_VERSION.trim()))
-                .inner_size(1280.0, 860.0).min_inner_size(800.0, 560.0)
-                .on_navigation(|url| {
-                    matches!(url.scheme(), "tauri" | "about")
-                        || matches!(url.host_str(), Some("tauri.localhost"))
-                        || (url.scheme() == "http" && matches!(url.host_str(), Some("127.0.0.1" | "localhost")))
-                })
-                .build()?;
+            // Keep the local loading page in a separate WebView. Navigating that
+            // page to the backend makes WebKit treat the Strict auth cookie as
+            // cross-site and can reject it during the token -> / redirect.
+            let splash = WebviewWindowBuilder::new(
+                app, "splash", WebviewUrl::App("index.html".into()),
+            )
+            .title("DeepSeek Harness · 正在连接")
+            .inner_size(800.0, 560.0)
+            .build()?;
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                match backend_url() {
-                    Ok(url) => {
-                        if window.navigate(url).is_err() {
-                            let _ = window.eval("document.getElementById('status').textContent='无法打开后端页面。请检查本地后端服务。'");
-                        }
+                let result = backend_url().and_then(|url| {
+                    // A fresh WebView starts at the authenticated backend URL;
+                    // the backend itself exchanges the token for an HttpOnly
+                    // cookie. Never copy browser cookies or weaken SameSite.
+                    WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
+                        .title(format!(
+                            "DeepSeek Harness · UI {} / 已安装内核 {}",
+                            CORE_VERSION.trim(), CORE_VERSION.trim(),
+                        ))
+                        .inner_size(1280.0, 860.0)
+                        .min_inner_size(800.0, 560.0)
+                        .on_navigation(|url| {
+                            url.scheme() == "http"
+                                && matches!(url.host_str(), Some("127.0.0.1" | "localhost"))
+                        })
+                        .build()
+                        .map_err(|error| format!("无法打开后端窗口：{error}"))
+                });
+                match result {
+                    Ok(window) => {
+                        let _ = splash.close();
+                        let _ = window.set_focus();
                     }
                     Err(error) => {
                         let message = serde_json::to_string(&format!("连接失败：{error}")).unwrap();
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.eval(&format!("document.getElementById('status').textContent={message}"));
+                        if let Some(window) = handle.get_webview_window("splash") {
+                            let _ = window.eval(&format!(
+                                "document.getElementById('status').textContent={message}"
+                            ));
                         }
                     }
                 }

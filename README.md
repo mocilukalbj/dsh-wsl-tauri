@@ -155,6 +155,14 @@ python3 scripts/backend.py --home "$HOME" --port 3080 --redact
 # 使用其他日志时追加 --log-glob '/absolute/path/*.log'
 ```
 
+Linux 上可运行真实 WebKitGTK 认证回归检查（需要 Python GI 的 Gtk 3 / WebKit2 4.1 绑定）：
+
+```bash
+python3 scripts/check-webkit-auth.py
+```
+
+此测试使用本地模拟服务，验证首次认证、刷新和跨进程 cookie 持久化，不使用真实账号。主窗口直接以认证 URL 创建；本地连接提示页使用独立窗口，避免 WebKit 将认证 cookie 的跳转视为跨站访问。正常使用无需先在外部浏览器登录本地 WebUI。
+
 不带 `--redact` 的结果包含临时登录 URL，供桌面进程通过管道读取。可选的 `scripts/check-webview.mjs` 是 Windows WebView2 调试工具，不作为跨平台验收结果。
 
 - 尚未完整验收模型回复、工具执行及所有平台的服务冷启动流程。
